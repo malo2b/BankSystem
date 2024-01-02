@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: supersecret
+      MYSQL_DATABASE: bksys
+      MYSQL_USER: bksys
+      MYSQL_PASSWORD: supersecret
+    networks:
+      - bksys_network
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u root --password=$$MYSQL_ROOT_PASSWORD
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - ./docker/sql:/docker-entrypoint-initdb.d/
+    ports:
+      - "3309:3306"
+    command: mysqld --sql_mode="" --character-set-server=latin1 --collation-server=latin1_swedish_ci --max-connections=100 --wait-timeout=28800
+
+
+  bksys_account_ms:
+    build: ./bksys_account_ms
+    ports:
+      - "11001:8080"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=bksys
+      - DB_PASSWORD=supersecret
+      - DB_NAME=bksys
+      - LOKI_ENDPOINT=http://loki:3100/loki/api/v1/push
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - bksys_network
+    healthcheck:
+      test: curl --fail http://localhost:8080/service-status || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  bksys_operations_rule_ms:
+    build: ./bksys_operations_rule_ms
+    ports:
+      - "11002:8080"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=bksys
+      - DB_PASSWORD=supersecret
+      - DB_NAME=bksys
+      - LOKI_ENDPOINT=http://loki:3100/loki/api/v1/push
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - bksys_network
+    healthcheck:
+      test: curl --fail http://localhost:8080/service-status || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  bksys_transaction_ms:
+    build: ./bksys_transaction_ms
+    ports:
+      - "11003:8080"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=bksys
+      - DB_PASSWORD=supersecret
+      - DB_NAME=bksys
+      - LOKI_ENDPOINT=http://loki:3100/loki/api/v1/push
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: curl --fail http://localhost:8080/service-status || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - bksys_network
+
+  bksys_gateway_client:
+    build: ./bksys_gateway_client
+    ports:
+      - "11000:8080"
+    environment:
+      - ACCOUNT_MS_HOST=http://bksys_account_ms:8080
+      - OPERATIONS_RULE_MS_HOST=http://bksys_operations_rule_ms:8080
+      - TRANSACTION_MS_HOST=http://bksys_transaction_ms:8080
+      - LOKI_ENDPOINT=http://loki:3100/loki/api/v1/push
+    depends_on:
+      - bksys_account_ms
+      - bksys_operations_rule_ms
+      - bksys_transaction_ms
+    healthcheck:
+      test: curl --fail http://localhost:8080/dependencies-status || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - bksys_network
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - "${PWD}/prometheus/:/etc/prometheus/"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    networks:
+      - bksys_network
+    depends_on:
+      - bksys_account_ms
+      - bksys_operations_rule_ms
+      - bksys_transaction_ms
+      - bksys_gateway_client
+
+  loki:
+    image: grafana/loki:2.9.0
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - bksys_network
+    depends_on:
+      - bksys_account_ms
+      - bksys_operations_rule_ms
+      - bksys_transaction_ms
+      - bksys_gateway_client
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    networks:
+      - bksys_network
+    depends_on:
+      - loki
+      - prometheus
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+
+
+
+networks:
+  bksys_network:
+    driver: bridge
+
