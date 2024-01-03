@@ -1,0 +1,12 @@
+
+
+bksys-account-ms:
+  image:
+    repository: "hub.docker.com/repository/docker/malo2b/banksystem_bksys_account_ms"
+    tag: "latest"
+
+
+
+# bksys-operations-rule-ms:
+# bksys-transaction-ms:
+# bksys-gateway-client:

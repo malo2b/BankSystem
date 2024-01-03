@@ -1,0 +1,15 @@
+dependencies:
+- name: nginx
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 15.5.2
+- name: nginx
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 15.5.2
+- name: nginx
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 15.5.2
+- name: nginx
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 15.5.2
+digest: sha256:a7a8780136df43be8657bb6709fde254834a947de5c2dc7cd78d79de37792fe6
+generated: "2024-01-03T10:28:56.578445+01:00"

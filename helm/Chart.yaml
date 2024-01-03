@@ -1,0 +1,23 @@
+# Write main chart with 4 sub microservices with httpserver, db, grafana, prometheus
+
+apiVersion: v2
+name: bank-stsystem
+version: 0.1.0
+description: A Helm chart for Kubernetes and BankStSystem project
+dependencies:
+  - name: &chart nginx
+    alias: bksys-account-ms
+    version: &version 15.5.2
+    repository: &nginx-repository "oci://registry-1.docker.io/bitnamicharts"
+  # - name: *chart
+  #   alias: bksys-operations-rule-ms
+  #   version: *version
+  #   repository: *nginx-repository
+  # - name: *chart
+  #   alias: bksys-transaction-ms
+  #   version: *version
+  #   repository: *nginx-repository
+  # - name: *chart
+  #   alias: bksys-gateway-client
+  #   version: *version
+  #   repository: *nginx-repository
