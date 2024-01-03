@@ -13,7 +13,7 @@ class AppSettings(BaseSettings):
     DB_PASSWORD: str
     DB_NAME: str
 
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(env_file=".env", secrets_dir="/run/secrets")
 
 
 app_settings = AppSettings()
