@@ -8,6 +8,7 @@ from circuitbreaker import circuit
 
 from ..settings import app_settings
 from ..schemas.payment_limit_schemas import PaymentLimit
+from ..helpers.exceptions import ServerErrorException
 
 log = logging.getLogger(__name__)
 
@@ -45,11 +46,11 @@ class OperationsRuleService:
                 log.error(
                     f"Error requesting health check from operations rule service. {self.host}/service-status"
                 )
-                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+                raise ServerErrorException(status_code=503, detail="Service Unavailable")
 
     @circuit(
         failure_threshold=app_settings.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-        expected_exception=HTTPException,
+        expected_exception=ServerErrorException,
         recovery_timeout=app_settings.CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
     )
     async def get_operations_rule_from_account(self, account_id: int) -> PaymentLimit:
@@ -70,11 +71,11 @@ class OperationsRuleService:
                     f"Error requesting operations rule from operations rule service. \
                     {self.host}/payment-limit/{account_id}"
                 )
-                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+                raise ServerErrorException(status_code=503, detail="Service Unavailable")
 
     @circuit(
         failure_threshold=app_settings.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-        expected_exception=HTTPException,
+        expected_exception=ServerErrorException,
         recovery_timeout=app_settings.CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
     )
     async def get_operations_rule_from_user(self, user_id: int) -> PaymentLimit:
@@ -95,7 +96,7 @@ class OperationsRuleService:
                     f"Error requesting operations rule from operations rule service. \
                     {self.host}/payment-limit/{user_id}"
                 )
-                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+                raise ServerErrorException(status_code=503, detail="Service Unavailable")
 
 
 __all__ = ["OperationsRuleService"]

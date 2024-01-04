@@ -8,7 +8,7 @@ from circuitbreaker import circuit
 
 from ..settings import app_settings
 from ..schemas import AccountResponse, PaginatedAccountResponse, Paginated
-
+from ..helpers.exceptions import ServerErrorException
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class AccountService:
 
     @circuit(
         failure_threshold=app_settings.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-        expected_exception=HTTPException,
+        expected_exception=ServerErrorException,
         recovery_timeout=app_settings.CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
     )
     async def health_check(self) -> bool:
@@ -41,11 +41,11 @@ class AccountService:
                     return response.status == 200
             except aiohttp.ClientError:
                 log.error(f"Error requesting health check from account service. {self.host}/service-status")
-                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+                raise ServerErrorException(status_code=503, detail="Service Unavailable")
 
     @circuit(
         failure_threshold=app_settings.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-        expected_exception=HTTPException,
+        expected_exception=ServerErrorException,
         recovery_timeout=app_settings.CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
     )
     async def get_accounts(self, paginated: Paginated) -> PaginatedAccountResponse:
@@ -63,11 +63,11 @@ class AccountService:
                     return PaginatedAccountResponse(**result)
             except aiohttp.ClientError:
                 log.error(f"Error requesting accounts from account service. {self.host}/accounts")
-                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+                raise ServerErrorException(status_code=503, detail="Service Unavailable")
 
     @circuit(
         failure_threshold=app_settings.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-        expected_exception=HTTPException,
+        expected_exception=ServerErrorException,
         recovery_timeout=app_settings.CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
     )
     async def get_account(self, account_id: str) -> AccountResponse:
@@ -85,7 +85,7 @@ class AccountService:
                     return AccountResponse(**result)
             except aiohttp.ClientError:
                 log.error(f"Error requesting account from account service. {self.host}/accounts/{account_id}")
-                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+                raise ServerErrorException(status_code=503, detail="Service Unavailable")
 
 
 __all__ = ["AccountService"]

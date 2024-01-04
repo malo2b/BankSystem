@@ -17,8 +17,8 @@ from ..schemas import (
     PaymentLimit,
     Paginated,
 )
-
 from ..services import OperationsRuleService, AccountService
+from ..helpers.exceptions import ServerErrorException
 
 log = logging.getLogger(__name__)
 
@@ -54,11 +54,11 @@ class TransactionService:
                 log.error(
                     f"Error requesting health check from transaction service. {self.host}/service-status"
                 )
-                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+                raise ServerErrorException(status_code=503, detail="Service Unavailable")
 
     @circuit(
         failure_threshold=app_settings.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-        expected_exception=HTTPException,
+        expected_exception=ServerErrorException,
         recovery_timeout=app_settings.CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
     )
     async def get_transactions(self, account_id: str, paginated: Paginated) -> list:
@@ -82,11 +82,11 @@ class TransactionService:
                     f"Error requesting transactions from transaction service.\
                     {self.host}/transactions/{account_id}"
                 )
-                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+                raise ServerErrorException(status_code=503, detail="Service Unavailable")
 
     @circuit(
         failure_threshold=app_settings.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-        expected_exception=HTTPException,
+        expected_exception=ServerErrorException,
         recovery_timeout=app_settings.CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
     )
     async def _emit_transaction(self, transaction: Transaction) -> None:
@@ -119,11 +119,11 @@ class TransactionService:
                     f"Error requesting transactions from transaction service.\
                     {self.host}/transactions/{transaction.id_account}"
                 )
-                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+                raise ServerErrorException(status_code=503, detail="Service Unavailable")
 
     @circuit(
         failure_threshold=app_settings.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-        expected_exception=HTTPException,
+        expected_exception=ServerErrorException,
         recovery_timeout=app_settings.CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
     )
     async def add_transaction(

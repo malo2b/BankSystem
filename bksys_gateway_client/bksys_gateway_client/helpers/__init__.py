@@ -2,5 +2,7 @@
 
 from .response import HTTPResponse
 from .logger import EndpointFilter
+from .exceptions import ServerErrorException
 
-__all__ = ["HTTPResponse", "EndpointFilter"]
+
+__all__ = ["HTTPResponse", "EndpointFilter", "ServerErrorException"]
