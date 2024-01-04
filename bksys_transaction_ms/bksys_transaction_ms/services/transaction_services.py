@@ -1,9 +1,14 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 
 from aiomysql import DictCursor
 
 from ..database import get_db
-from ..schemas import Paginated, PaginatedTransactionResponse, Transaction, TransactionRequest
+from ..schemas import (
+    Paginated,
+    PaginatedTransactionResponse,
+    Transaction,
+    TransactionRequest,
+)
 
 
 class TransactionService:
@@ -30,6 +35,24 @@ class TransactionService:
         async with self.db.cursor(DictCursor) as cursor:
             await cursor.execute(query, params)
             result = await cursor.fetchall()
+
+        if not result:
+            # Check if account exists
+            query: str = """
+                SELECT idAccount FROM Account WHERE idAccount = %s
+                """
+            params: tuple = (account_id,)
+            async with self.db.cursor(DictCursor) as cursor:
+                await cursor.execute(query, params)
+                result = await cursor.fetchone()
+            if not result:
+                # Account not found
+                raise HTTPException(status_code=404, detail="Account not found.")
+            else:
+                # Account found but no transactions
+                return PaginatedTransactionResponse.model_construct(
+                    data=[], pagination=paginated.with_total(0)
+                )
 
         return PaginatedTransactionResponse.model_construct(
             data=[Transaction(**row) for row in result],
