@@ -52,8 +52,13 @@ class AccountService:
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(
-                    f"{self.host}/accounts", params=paginated.dict()
+                    f"{self.host}/accounts", params=paginated.model_dump(by_alias=True)
                 ) as response:
+                    if response.status == status.HTTP_404_NOT_FOUND:
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Accounts not found",
+                        )
                     result = await response.json()
                     return PaginatedAccountResponse(**result)
             except aiohttp.ClientError:
@@ -71,6 +76,11 @@ class AccountService:
                 async with session.get(
                     f"{self.host}/accounts/{account_id}"
                 ) as response:
+                    if response.status == status.HTTP_404_NOT_FOUND:
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Account not found",
+                        )
                     result = await response.json()
                     return AccountResponse(**result)
             except aiohttp.ClientError:

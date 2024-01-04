@@ -58,6 +58,11 @@ class OperationsRuleService:
                 async with session.get(
                     f"{self.host}/payment-limits/accounts/{account_id}"
                 ) as response:
+                    if response.status == 404:
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Payment limit not found for account {account_id}",
+                        )
                     result = await response.json()
                     return PaymentLimit(**result)
             except aiohttp.ClientError:
@@ -78,6 +83,11 @@ class OperationsRuleService:
                 async with session.get(
                     f"{self.host}/payment-limits/users/{user_id}"
                 ) as response:
+                    if response.status == 404:
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Payment limit not found for user {user_id}",
+                        )
                     result = await response.json()
                     return PaymentLimit(**result)
             except aiohttp.ClientError:

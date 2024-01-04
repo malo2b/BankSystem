@@ -14,7 +14,8 @@ from ..schemas import (
     TransactionTransferRequest,
     TransactionType,
     Account,
-    PaymentLimit
+    PaymentLimit,
+    Paginated,
 )
 
 from ..services import OperationsRuleService, AccountService
@@ -48,7 +49,7 @@ class TransactionService:
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(f"{self.host}/service-status") as response:
-                    return response.status == 200
+                    return response.status == status.HTTP_200_OK
             except aiohttp.ClientError:
                 log.error(
                     f"Error requesting health check from transaction service. {self.host}/service-status"
@@ -60,15 +61,20 @@ class TransactionService:
         expected_exception=HTTPException,
         recovery_timeout=app_settings.CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
     )
-    async def get_transactions(self, account_id: str) -> list:
+    async def get_transactions(self, account_id: str, paginated: Paginated) -> list:
         log.info(
             f"Requesting transactions from transaction service. {self.host}/transactions/{account_id}"
         )
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(
-                    f"{self.host}/transactions/{account_id}"
+                    f"{self.host}/transactions/{account_id}", params=paginated.model_dump(by_alias=True)
                 ) as response:
+                    if response.status == status.HTTP_404_NOT_FOUND:
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Account not found",
+                        )
                     result = await response.json()
                     return PaginatedTransactionResponse(**result)
             except aiohttp.ClientError:

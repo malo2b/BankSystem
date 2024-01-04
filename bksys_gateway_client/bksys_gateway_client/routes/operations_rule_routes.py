@@ -11,7 +11,7 @@ router = APIRouter(prefix="/operations-rule", tags=["operations-rule"])
 
 
 @router.get("/accounts/{account_id}")
-async def get_operations_rule_from_account(account_id: str, service: OperationsRuleService = Depends()):
+async def get_operations_rule_from_account(account_id: int, service: OperationsRuleService = Depends()):
     """Get operations rule."""
     return HTTPResponse(
         status_code=status.HTTP_200_OK,
@@ -20,7 +20,7 @@ async def get_operations_rule_from_account(account_id: str, service: OperationsR
 
 
 @router.get("/users/{user_id}")
-async def get_operations_rule_from_user(user_id: str, service: OperationsRuleService = Depends()):
+async def get_operations_rule_from_user(user_id: int, service: OperationsRuleService = Depends()):
     """Get operations rule."""
     return HTTPResponse(
         status_code=status.HTTP_200_OK,
