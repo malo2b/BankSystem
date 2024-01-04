@@ -4,9 +4,12 @@ from contextlib import asynccontextmanager
 import logging
 from multiprocessing import Queue
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
+from fastapi.responses import JSONResponse
 from logging_loki import LokiQueueHandler
 from prometheus_fastapi_instrumentator import Instrumentator
+from pydantic import ValidationError
+
 
 from .helpers import EndpointFilter
 from .routes import router
@@ -26,6 +29,18 @@ async def lifespan(app: FastAPI):
 # Initialize FastAPI app
 app = FastAPI(lifespan=lifespan)
 log.info("Initializing FastAPI app.")
+
+
+# Exception handler for pydantic validation errors
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(request, exc) -> JSONResponse:
+    detail: str = ""
+    for error in exc.errors():
+        detail += f"{error['loc'][0]}: {error['msg']};"
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=detail,
+    )
 
 
 # Import routes

@@ -5,10 +5,12 @@ from multiprocessing import Queue
 
 from circuitbreaker import CircuitBreakerError
 from fastapi import FastAPI, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from logging_loki import LokiQueueHandler
 from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.requests import Request as StarletteRequest
+from pydantic import ValidationError
 
 from .helpers import HTTPResponse, EndpointFilter
 from .routes import router
@@ -16,7 +18,9 @@ from .settings import app_settings
 from .schemas import CircuitBreakerResponse
 
 
-logging.basicConfig(format='%(levelname)s : %(asctime)s : [%(name)s]: %(message)s', level=logging.INFO)
+logging.basicConfig(
+    format="%(levelname)s : %(asctime)s : [%(name)s]: %(message)s", level=logging.INFO
+)
 log = logging.getLogger(__name__)
 
 
@@ -36,7 +40,9 @@ app.add_middleware(
 
 
 @app.exception_handler(CircuitBreakerError)
-async def circuit_breaker_error_handler(request: StarletteRequest, exc: CircuitBreakerError) -> None:
+async def circuit_breaker_error_handler(
+    request: StarletteRequest, exc: CircuitBreakerError
+) -> None:
     """Circuit breaker error handler."""
     return HTTPResponse(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -45,8 +51,20 @@ async def circuit_breaker_error_handler(request: StarletteRequest, exc: CircuitB
             open_until=str(exc._circuit_breaker.open_until),
             failure_count=exc._circuit_breaker.failure_count,
             failure_threshold=app_settings.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-            detail=str(exc)
+            detail=str(exc),
         ),
+    )
+
+
+# Exception handler for pydantic validation errors
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(request, exc) -> JSONResponse:
+    detail: str = ""
+    for error in exc.errors():
+        detail += f"{error['loc'][0]}: {error['msg']};"
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=detail,
     )
 
 
